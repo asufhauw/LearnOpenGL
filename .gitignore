@@ -36,3 +36,7 @@
 
 # Vim windows temp files
 *.*~
+
+# Ignore intermediate files
+*/tmp/*
+/tmp/
