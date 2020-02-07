@@ -38,5 +38,4 @@
 *.*~
 
 # Ignore intermediate files
-*/tmp/*
-/tmp/
+tmp/
