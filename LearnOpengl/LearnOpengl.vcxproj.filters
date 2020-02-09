@@ -3,12 +3,13 @@
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="glad.c" />
+    <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="VertexShaderSource.vs" />
-    <None Include="FragmentShaderSource.fs" />
+    <Text Include="VertexShaderSource.txt" />
+    <Text Include="FragmentShaderSource.txt" />
   </ItemGroup>
 </Project>
