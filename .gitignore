@@ -39,3 +39,8 @@
 
 # Ignore intermediate files
 tmp/
+
+# 
+x64/
+*.pdb
+*.ilk
