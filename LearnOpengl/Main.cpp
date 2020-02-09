@@ -58,8 +58,8 @@ int main()
 	glViewport(0, 0, WIDTH, HEIGHT);
 
 // using our shader class
-	Shader ourShader("C:\\Users\\johan\\Fun\\Projects\\LearnOpenGL\\LearnOpengl\\VertexShaderSource.txt", 
-					 "C:\\Users\\johan\\Fun\\Projects\\LearnOpenGL\\LearnOpengl\\FragmentShaderSource.txt");
+	Shader ourShader("VertexShaderSource.txt", 
+					 "FragmentShaderSource.txt");
 	float vertices[] = {
 		// positions         // colors
 		 0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // bottom right
