@@ -18,6 +18,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 void processInput(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -28,6 +31,15 @@ void processInput(GLFWwindow* window)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+	const float cameraSpeed = 0.05f; // adjust accordingly
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
 
 int main()
@@ -229,13 +241,21 @@ int main()
 		glActiveTexture(GL_TEXTURE1); // activate the texture unit first before binding texture
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
+	
+
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
-		glm::mat4 view = glm::mat4(1.0f);
+	//	glm::mat4 view = glm::mat4(1.0f);
 		// note that we're translating the scene in the reverse direction of where we want to move
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+	//	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 
+		const float radius = 10.0f;
+		float camX = sin(glfwGetTime()) * radius;
+		float camZ = cos(glfwGetTime()) * radius;
+		glm::mat4 view;
+	//	view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		int modelLoc = glGetUniformLocation(ourShader.ID, "model");
 		int viewLoc = glGetUniformLocation(ourShader.ID, "view");
 
@@ -258,6 +278,7 @@ int main()
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
+		
 	//	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		// Check and call events and swap buffers
