@@ -17,10 +17,20 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
+float deltaTime = 0.0f;	// Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
 
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+glm::vec3 direction;
+bool firstMouse = true;
+float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float pitch = 0.0f;
+float lastX = 800.0f / 2.0;
+float lastY = 600.0 / 2.0;
+float fov = 45.0f;
 void processInput(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -31,7 +41,8 @@ void processInput(GLFWwindow* window)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-	const float cameraSpeed = 0.05f; // adjust accordingly
+	//const float cameraSpeed = 0.05f; // adjust accordingly
+	float cameraSpeed = 2.5f * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		cameraPos += cameraSpeed * cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -41,18 +52,58 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.1f; // change this value to your liking
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	// make sure that when pitch is out of bounds, screen doesn't get flipped
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(front);
+}
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	if (fov > 1.0f && fov < 45.0f)
+		fov -= yoffset;
+	else if (fov <= 1.0f)
+		fov = 1.0f;
+	else if (fov >= 45.0f)
+		fov = 45.0f;
+}
 
 int main()
 {
-
-
 // GLFW 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 // Create window
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", NULL, NULL);
@@ -71,9 +122,11 @@ int main()
 		return -1;
 	}
 
-// register the callback functions after we've created the window and before the render loop is initiated.
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	glEnable(GL_DEPTH_TEST);
 	glViewport(0, 0, WIDTH, HEIGHT);
@@ -125,9 +178,6 @@ int main()
 	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
 	
-
-
-
 	unsigned int VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -137,7 +187,6 @@ int main()
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
 
 	// position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -150,10 +199,8 @@ int main()
 	glEnableVertexAttribArray(1);
 
 // Textures
-	// Generate texture
 	unsigned int texture1, texture2;
 	glGenTextures(1, &texture1);
-	//bind it so any texture commands will configure the currently bound texture
 	glBindTexture(GL_TEXTURE_2D, texture1);
 
 	// set wrapp to mirrored repeat
@@ -162,7 +209,7 @@ int main()
 	//set mipmap mode
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	// Load textures using stb_img.h
+// Load textures using stb_img.h
 	int width, height, nrChannels;
 	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
 	unsigned char* data = stbi_load("..\\Textures\\container.jpg", &width, &height, &nrChannels, 0);
@@ -207,8 +254,6 @@ int main()
 	ourShader.setInt("texture1", 0);
 	ourShader.setInt("texture2", 1);
 
-
-
 	glm::vec3 cubePositions[] = {
 	  glm::vec3(0.0f,  0.0f,  0.0f),
 	  glm::vec3(2.0f,  5.0f, -15.0f),
@@ -223,15 +268,16 @@ int main()
 	};
 
 	glm::mat4 projection;
-	projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+	//projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
 	int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
-	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+	//glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
 	while (!glfwWindowShouldClose(window))
 	{
 		// input
 		processInput(window);
-
+		
 		//render
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -241,28 +287,23 @@ int main()
 		glActiveTexture(GL_TEXTURE1); // activate the texture unit first before binding texture
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
-	
-
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
-	//	glm::mat4 view = glm::mat4(1.0f);
-		// note that we're translating the scene in the reverse direction of where we want to move
-	//	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 
 		const float radius = 10.0f;
 		float camX = sin(glfwGetTime()) * radius;
 		float camZ = cos(glfwGetTime()) * radius;
-		glm::mat4 view;
-	//	view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
+		ourShader.setMat4("projection", projection);
 
+		glm::mat4 view;
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		int modelLoc = glGetUniformLocation(ourShader.ID, "model");
 		int viewLoc = glGetUniformLocation(ourShader.ID, "view");
 
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &(model[0].x));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &(view[0].x));
 	
-
 		ourShader.use();
 		
 		glBindVertexArray(VAO);
@@ -271,22 +312,21 @@ int main()
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
 			float angle = 20.0f * i;
-			if (i % 3 == 0)  // every 3rd iteration (including the first) we set the angle using GLFW's time function.
+			if (i % 3 == 0) 
 				angle = glfwGetTime() * 25.0f;
 			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
 			ourShader.setMat4("model", model);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-		
-	//	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-		// Check and call events and swap buffers
+	
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+	
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-	// optional: de-allocate all resources once they've outlived their purpose:
-  // ------------------------------------------------------------------------
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 
